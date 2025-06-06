@@ -5,136 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A ONE Real Estate Chat Widget</title>
     <!-- Google Fonts - Inter for modern typography -->
-    
     <style>
         /* CSS Variables for a streamlined theme management */
         :root {
             --navy-blue: #0A1128;
             --dark-navy: #00071C;
-            --light-navy: #1E2D53; /* A bit brighter for accents */
+            --light-navy: #1E2D53;
             --white: #FFFFFF;
-            --off-white: #F9FAFB; /* Very subtle off-white for background */
-            --light-gray: #E0E2E5; /* For user bubbles and subtle borders */
-            --medium-gray: #CCD1D9; /* For input borders, etc. */
+            --off-white: #F9FAFB;
+            --light-gray: #E0E2E5;
+            --medium-gray: #CCD1D9;
             --text-color: #333333;
             --light-text: #6B7280;
-            --hover-blue: #1A3A81; /* Darker navy for hover */
+            --hover-blue: #1A3A81;
             --shadow-light: rgba(0, 0, 0, 0.1);
             --shadow-medium: rgba(0, 0, 0, 0.2);
             --shadow-strong: rgba(0, 0, 0, 0.35);
         }
 
-        /* Base styles (optional, primarily for demo) */
-        body {
-            font-family: 'Inter', sans-serif;
-            line-height: 1.6;
-            color: var(--text-color);
+        /* Base styles */
+        body, html {
             margin: 0;
             padding: 0;
-            /* Example background for testing if you paste into an empty HTML file */
-            /* background-color: var(--off-white); */
-            min-height: 120vh; /* Make body taller for scroll demo */
-            padding-bottom: 100px; /* Space at bottom so floating widget doesn't hide content */
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
         }
 
-        /* Floating chat button - FIXED position to viewport */
-        #chat-button {
-            position: fixed; /* This makes it float independently */
-            bottom: 25px;
-            right: 25px;
-            background: linear-gradient(135deg, var(--navy-blue) 0%, var(--light-navy) 100%); /* Gradient for depth */
-            border-radius: 50px; /* Changed from 50% to make it pill-shaped */
-            box-shadow: 0 8px 20px var(--shadow-strong); /* Stronger, more prominent shadow */
-            cursor: pointer;
+        /* Full-page chat container */
+        #chat-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000; /* Highest z-index to appear on top */
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smooth animation */
-            border: 3px solid var(--white); /* Subtle white border */
-            padding: 10px 20px;
-            gap: 10px;
-        }
-        #chat-button:hover {
-            background: linear-gradient(135deg, var(--hover-blue) 0%, var(--navy-blue) 100%);
-            transform: translateY(-5px) scale(1.05); /* Lift and slightly enlarge */
-            box-shadow: 0 12px 25px var(--shadow-strong); /* More pronounced shadow on hover */
-        }
-        #chat-button:active {
-            transform: translateY(0) scale(0.98); /* Press effect */
-        }
-
-        /* Chat button text */
-        #chat-button .chat-text {
-            color: var(--white);
-            font-weight: 500;
-            font-size: 16px;
-            white-space: nowrap;
-            display: none; /* Hidden by default on mobile */
-        }
-
-        /* Chat icon (simple chat bubble) */
-        #chat-button svg {
-            width: 32px; /* Larger icon */
-            height: 32px;
-            fill: var(--white);
-            transition: transform 0.3s ease;
-            flex-shrink: 0;
-        }
-        #chat-button:hover svg {
-            transform: rotate(5deg); /* Subtle rotation on hover */
-        }
-
-        /* Chat popup container - FIXED position to viewport */
-        #chat-popup {
-            position: fixed; /* This makes it float independently */
-            bottom: 95px; /* Position above the button (65px button + 30px gap) */
-            right: 25px;
-            width: 380px;
-            max-height: 520px; /* Taller for more content */
-            background: var(--white);
-            border-radius: 18px; /* More rounded corners */
-            box-shadow: 0 15px 40px var(--shadow-strong); /* Deeper shadow */
-            display: none; /* Hidden by default */
             flex-direction: column;
-            z-index: 9999; /* Just below the button to avoid accidental clicks on button */
-            overflow: hidden; /* Ensures contents respect border-radius */
-            transition: all 0.3s ease-in-out; /* Smooth open/close */
-            transform-origin: bottom right; /* For scaling effect */
-            opacity: 0;
-            transform: scale(0.8);
-        }
-        #chat-popup.show {
-            display: flex;
-            opacity: 1;
-            transform: scale(1);
+            background-color: var(--white);
+            z-index: 10000;
         }
 
         /* Header */
-        #chat-popup header {
+        #chat-header {
             background-color: var(--navy-blue);
             color: var(--white);
-            padding: 18px 25px; /* More padding */
+            padding: 18px 25px;
             font-weight: 600;
-            font-size: 19px; /* Slightly larger font */
+            font-size: 19px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--dark-navy); /* Subtle line */
+            border-bottom: 1px solid var(--dark-navy);
         }
 
-        #chat-popup header .close-btn {
+        #chat-header .close-btn {
             background: none;
             border: none;
             color: var(--white);
-            font-size: 28px; /* Larger close icon */
+            font-size: 28px;
             cursor: pointer;
             line-height: 1;
             padding: 0 5px;
             transition: transform 0.2s ease, color 0.2s ease;
             opacity: 0.8;
         }
-        #chat-popup header .close-btn:hover {
+        #chat-header .close-btn:hover {
             transform: rotate(90deg);
             color: var(--light-gray);
             opacity: 1;
@@ -143,11 +79,10 @@
         /* Chat messages area */
         #chat-history {
             flex-grow: 1;
-            padding: 20px; /* More padding */
+            padding: 20px;
             overflow-y: auto;
-            background: var(--off-white); /* Off-white for history background */
+            background: var(--off-white);
             border-bottom: 1px solid var(--light-gray);
-            /* Custom scrollbar for aesthetics */
             scrollbar-width: thin;
             scrollbar-color: var(--navy-blue) var(--off-white);
         }
@@ -166,7 +101,7 @@
         /* Chat message styles */
         .message {
             display: flex;
-            margin-bottom: 20px; /* More spacing */
+            margin-bottom: 20px;
             align-items: flex-start;
         }
         .message.bot {
@@ -177,43 +112,43 @@
         }
 
         .avatar {
-            width: 48px; /* Larger avatar */
+            width: 48px;
             height: 48px;
             border-radius: 50%;
             overflow: hidden;
             margin: 0 12px;
             flex-shrink: 0;
-            background-color: var(--medium-gray); /* Fallback */
+            background-color: var(--medium-gray);
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 2px 8px var(--shadow-light); /* Subtle shadow */
-            border: 2px solid var(--white); /* White border around avatar */
+            box-shadow: 0 2px 8px var(--shadow-light);
+            border: 2px solid var(--white);
         }
         .avatar svg {
-            width: 100%; /* Make SVG fill avatar div */
+            width: 100%;
             height: 100%;
             object-fit: cover;
         }
 
         .bubble {
-            max-width: 78%; /* Wider bubbles */
-            padding: 15px 20px; /* More padding */
-            border-radius: 25px; /* Fully rounded */
+            max-width: 78%;
+            padding: 15px 20px;
+            border-radius: 25px;
             font-size: 15px;
             line-height: 1.5;
             word-wrap: break-word;
-            box-shadow: 0 2px 5px var(--shadow-light); /* Subtle bubble shadow */
+            box-shadow: 0 2px 5px var(--shadow-light);
         }
         .bot .bubble {
             background-color: var(--navy-blue);
             color: var(--white);
-            border-bottom-left-radius: 8px; /* Pointed corner */
+            border-bottom-left-radius: 8px;
         }
         .user .bubble {
             background-color: var(--light-gray);
             color: var(--text-color);
-            border-bottom-right-radius: 8px; /* Pointed corner */
+            border-bottom-right-radius: 8px;
         }
 
         /* Suggested questions container */
@@ -221,10 +156,10 @@
             padding: 15px 20px;
             display: flex;
             flex-wrap: wrap;
-            gap: 10px; /* More spacing */
+            gap: 10px;
             background-color: var(--white);
             border-top: 1px solid var(--light-gray);
-            justify-content: center; /* Center buttons */
+            justify-content: center;
         }
 
         /* Question buttons */
@@ -233,7 +168,7 @@
             border: 1px solid var(--navy-blue);
             color: var(--navy-blue);
             padding: 10px 18px;
-            border-radius: 30px; /* Very rounded */
+            border-radius: 30px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
@@ -257,9 +192,9 @@
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            justify-content: flex-end; /* Align to right for user-like responses */
+            justify-content: flex-end;
         }
-        .bot + .response-buttons { /* If buttons are part of bot response */
+        .bot + .response-buttons {
             justify-content: flex-start;
         }
 
@@ -294,7 +229,7 @@
             flex-grow: 1;
             padding: 12px 18px;
             border: 1px solid var(--medium-gray);
-            border-radius: 28px; /* Very rounded */
+            border-radius: 28px;
             font-size: 16px;
             outline: none;
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
@@ -308,15 +243,15 @@
 
         #chat-input-area input[type="text"]:focus {
             border-color: var(--navy-blue);
-            box-shadow: 0 0 0 4px rgba(10, 17, 40, 0.15); /* Focus ring */
+            box-shadow: 0 0 0 4px rgba(10, 17, 40, 0.15);
         }
 
         #chat-input-area button {
-            background: linear-gradient(45deg, var(--navy-blue) 0%, var(--light-navy) 100%); /* Gradient button */
+            background: linear-gradient(45deg, var(--navy-blue) 0%, var(--light-navy) 100%);
             color: var(--white);
             border: none;
             border-radius: 50%;
-            width: 48px; /* Larger send button */
+            width: 48px;
             height: 48px;
             display: flex;
             justify-content: center;
@@ -338,44 +273,18 @@
 
         #chat-input-area button svg {
             fill: var(--white);
-            width: 22px; /* Larger icon */
+            width: 22px;
             height: 22px;
-            transform: translateX(1px); /* optical adjustment */
+            transform: translateX(1px);
         }
 
-        /* Hyper-Responsiveness with Media Queries */
-        @media (min-width: 768px) {
-            #chat-button .chat-text {
-                display: block; /* Show text on larger screens */
-            }
-        }
-
+        /* Responsive adjustments */
         @media (max-width: 768px) {
-            #chat-popup {
-                width: 320px; /* Slightly smaller on tablets */
-                max-height: 460px; /* Smaller max-height */
-                bottom: 85px; /* Adjust gap */
-                right: 20px;
-            }
-
-            #chat-button {
-                width: 60px;
-                height: 60px;
-                right: 20px;
-                bottom: 20px;
-                padding: 0; /* Remove padding on mobile */
-                border-radius: 50%; /* Make it circular on mobile */
-            }
-            #chat-button svg {
-                width: 28px;
-                height: 28px;
-            }
-
-            #chat-popup header {
+            #chat-header {
                 padding: 15px 20px;
                 font-size: 18px;
             }
-            #chat-popup header .close-btn {
+            #chat-header .close-btn {
                 font-size: 26px;
             }
 
@@ -411,26 +320,7 @@
         }
 
         @media (max-width: 480px) {
-            #chat-popup {
-                width: calc(100% - 40px); /* Take almost full width */
-                max-height: 70vh; /* Max height based on viewport */
-                right: 20px;
-                bottom: 80px;
-                border-radius: 15px;
-            }
-
-            #chat-button {
-                width: 55px;
-                height: 55px;
-                right: 15px;
-                bottom: 15px;
-            }
-            #chat-button svg {
-                width: 26px;
-                height: 26px;
-            }
-
-            #chat-popup header {
+            #chat-header {
                 padding: 12px 18px;
                 font-size: 17px;
             }
@@ -477,17 +367,8 @@
 </head>
 <body>
 
-<!-- Floating chat button -->
-<div id="chat-button" title="Chat with us" role="button" aria-expanded="false" aria-controls="chat-popup">
-  <!-- Simple chat bubble SVG icon -->
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M4 4h16v12H5.17L4 17.17V4z" />
-  </svg>
-  <span class="chat-text">Chat with us</span>
-</div>
-
-<!-- Chat popup -->
-<div id="chat-popup" role="dialog" aria-modal="true" aria-labelledby="chat-header">
+<!-- Full-page chat container -->
+<div id="chat-container" role="dialog" aria-modal="true" aria-labelledby="chat-header">
   <header id="chat-header">
     A ONE Real Estate Chat
     <button class="close-btn" aria-label="Close chat">×</button>
@@ -601,9 +482,9 @@
             keywords: ["contact", "phone", "email", "address", "get in touch", "call us", "office"],
             answer: "You can reach us through various channels. How would you prefer to get in touch?",
             buttons: [
-                { label: "Call Us", url: "tel:+61-0882777567" }, /* Replace with actual phone number */
-                { label: "Email Us", url: "mailto:contact@aonerealestate.com.au" }, /* Replace with actual email */
-                { label: "Our Office Location", url: "https://www.google.com/maps/place/A+ONE+REAL+ESTATE+PTY+LTD/@-34.9932186,138.5418786,15z/data=!3m1!4b1!4m6!3m5!1s0x6ab0cf36844e75ad:0x6adb5d3efdb21900!8m2!3d-34.9932376!4d138.5603326!16s%2Fg%2F11jw0c5cm9?entry=ttu&g_ep=EgoyMDI1MDYwMy4wIKXMDSoASAFQAw%3D%3D" } /* Replace with actual map link */
+                { label: "Call Us", url: "tel:+61-0882777567" },
+                { label: "Email Us", url: "mailto:contact@aonerealestate.com.au" },
+                { label: "Our Office Location", url: "https://www.google.com/maps/place/A+ONE+REAL+ESTATE+PTY+LTD/@-34.9932186,138.5418786,15z/data=!3m1!4b1!4m6!3m5!1s0x6ab0cf36844e75ad:0x6adb5d3efdb21900!8m2!3d-34.9932376!4d138.5603326!16s%2Fg%2F11jw0c5cm9?entry=ttu&g_ep=EgoyMDI1MDYwMy4wIKXMDSoASAFQAw%3D%3D" }
             ],
         },
         {
@@ -611,36 +492,24 @@
             keywords: ["about us", "history", "company", "who are you", "our team", "mission"],
             answer: "A ONE Real Estate is dedicated to providing exceptional real estate services with a focus on integrity and client satisfaction. Learn more about our mission and values.",
             buttons: [
-                { label: "Learn More About Us", url: "https://aonerealestate.com.au/about-us" } /* Replace with actual about us page */
+                { label: "Learn More About Us", url: "https://aonerealestate.com.au/about-us" }
             ],
         }
     ];
 
-    const chatButton = document.getElementById("chat-button");
-    const chatPopup = document.getElementById("chat-popup");
+    const chatContainer = document.getElementById("chat-container");
     const chatHistoryEl = document.getElementById("chat-history");
     const suggestedQuestionsEl = document.getElementById("suggested-questions");
     const chatInput = document.getElementById("chat-input");
     const sendButton = document.getElementById("send-button");
     const closeButton = document.querySelector(".close-btn");
 
-    // Toggle chat popup visibility
-    function toggleChat() {
-        const isVisible = chatPopup.classList.contains("show");
-        if (isVisible) {
-            chatPopup.classList.remove("show");
-            chatButton.setAttribute("aria-expanded", "false");
-        } else {
-            chatPopup.classList.add("show");
-            chatButton.setAttribute("aria-expanded", "true");
-            scrollToBottom();
-            chatInput.focus(); // Focus on input when opened
-            initChat(); // Re-initialize chat on open for fresh state
-        }
+    // Close chat
+    function closeChat() {
+        document.body.removeChild(chatContainer);
     }
 
-    chatButton.addEventListener("click", toggleChat);
-    closeButton.addEventListener("click", toggleChat);
+    closeButton.addEventListener("click", closeChat);
 
     // Add message to chat history
     function addMessage(from, text, buttons) {
@@ -667,7 +536,7 @@
                 const a = document.createElement("a");
                 a.href = b.url;
                 a.target = "_blank";
-                a.rel = "noopener noreferrer"; // Security best practice
+                a.rel = "noopener noreferrer";
                 a.textContent = b.label;
                 btnContainer.appendChild(a);
             });
@@ -686,8 +555,8 @@
     // Handle user clicking a suggested question
     function handleUserQuestion(faqItem) {
         addMessage("user", faqItem.question);
-        suggestedQuestionsEl.style.display = "none"; // Hide suggested questions after selection
-        chatInput.value = ""; // Clear input field
+        suggestedQuestionsEl.style.display = "none";
+        chatInput.value = "";
 
         setTimeout(() => {
             addMessage("bot", faqItem.answer, faqItem.buttons);
@@ -700,8 +569,8 @@
         if (userText === "") return;
 
         addMessage("user", userText);
-        chatInput.value = ""; // Clear input field
-        suggestedQuestionsEl.style.display = "none"; // Hide suggested questions when user types
+        chatInput.value = "";
+        suggestedQuestionsEl.style.display = "none";
 
         setTimeout(() => {
             const lowerCaseUserText = userText.toLowerCase();
@@ -729,8 +598,8 @@
 
             if (!foundMatch) {
                 addMessage("bot", "I'm sorry, I don't quite understand that. Could you please rephrase, or select from the options below?");
-                suggestedQuestionsEl.style.display = "flex"; // Show suggested questions again
-                renderSuggestedQuestions(); // Re-render for clarity
+                suggestedQuestionsEl.style.display = "flex";
+                renderSuggestedQuestions();
             }
         }, 800);
     }
@@ -756,26 +625,15 @@
 
     // Initialize chat with welcome message and suggested questions
     function initChat() {
-        chatHistoryEl.innerHTML = ""; // Clear previous messages
-        suggestedQuestionsEl.style.display = "flex"; // Ensure suggested questions are visible
+        chatHistoryEl.innerHTML = "";
+        suggestedQuestionsEl.style.display = "flex";
         addMessage("bot", "Good evening! Welcome to A ONE Real Estate 😁 How can we help you today?");
         renderSuggestedQuestions();
+        chatInput.focus();
     }
 
-    window.addEventListener('load', () => {
-  // Auto-click a start button or trigger chat immediately
-  const triggerChat = () => {
-    // Try different selectors depending on your button
-    const startBtn = document.querySelector('button'); // You can change selector as needed
-    if (startBtn) {
-      startBtn.click(); // Trigger the chatbot UI
-    } else {
-      setTimeout(triggerChat, 100); // Retry if not yet available
-    }
-  };
-
-  triggerChat();
-});
+    // Initialize the chat when the page loads
+    window.addEventListener('load', initChat);
 </script>
 
 </body>
