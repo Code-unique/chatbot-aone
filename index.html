@@ -761,6 +761,21 @@
         addMessage("bot", "Good evening! Welcome to A ONE Real Estate 😁 How can we help you today?");
         renderSuggestedQuestions();
     }
+
+    window.addEventListener('load', () => {
+  // Auto-click a start button or trigger chat immediately
+  const triggerChat = () => {
+    // Try different selectors depending on your button
+    const startBtn = document.querySelector('button'); // You can change selector as needed
+    if (startBtn) {
+      startBtn.click(); // Trigger the chatbot UI
+    } else {
+      setTimeout(triggerChat, 100); // Retry if not yet available
+    }
+  };
+
+  triggerChat();
+});
 </script>
 
 </body>
