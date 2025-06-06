@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A ONE Real Estate Chat Widget</title>
+    <!-- Google Fonts - Inter for modern typography -->
+    
+    <style>
+        /* CSS Variables for a streamlined theme management */
+        :root {
+            --navy-blue: #0A1128;
+            --dark-navy: #00071C;
+            --light-navy: #1E2D53; /* A bit brighter for accents */
+            --white: #FFFFFF;
+            --off-white: #F9FAFB; /* Very subtle off-white for background */
+            --light-gray: #E0E2E5; /* For user bubbles and subtle borders */
+            --medium-gray: #CCD1D9; /* For input borders, etc. */
+            --text-color: #333333;
+            --light-text: #6B7280;
+            --hover-blue: #1A3A81; /* Darker navy for hover */
+            --shadow-light: rgba(0, 0, 0, 0.1);
+            --shadow-medium: rgba(0, 0, 0, 0.2);
+            --shadow-strong: rgba(0, 0, 0, 0.35);
+        }
+
+        /* Base styles (optional, primarily for demo) */
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            /* Example background for testing if you paste into an empty HTML file */
+            /* background-color: var(--off-white); */
+            min-height: 120vh; /* Make body taller for scroll demo */
+            padding-bottom: 100px; /* Space at bottom so floating widget doesn't hide content */
+        }
+
+        /* Floating chat button - FIXED position to viewport */
+        #chat-button {
+            position: fixed; /* This makes it float independently */
+            bottom: 25px;
+            right: 25px;
+            background: linear-gradient(135deg, var(--navy-blue) 0%, var(--light-navy) 100%); /* Gradient for depth */
+            border-radius: 50px; /* Changed from 50% to make it pill-shaped */
+            box-shadow: 0 8px 20px var(--shadow-strong); /* Stronger, more prominent shadow */
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000; /* Highest z-index to appear on top */
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); /* Smooth animation */
+            border: 3px solid var(--white); /* Subtle white border */
+            padding: 10px 20px;
+            gap: 10px;
+        }
+        #chat-button:hover {
+            background: linear-gradient(135deg, var(--hover-blue) 0%, var(--navy-blue) 100%);
+            transform: translateY(-5px) scale(1.05); /* Lift and slightly enlarge */
+            box-shadow: 0 12px 25px var(--shadow-strong); /* More pronounced shadow on hover */
+        }
+        #chat-button:active {
+            transform: translateY(0) scale(0.98); /* Press effect */
+        }
+
+        /* Chat button text */
+        #chat-button .chat-text {
+            color: var(--white);
+            font-weight: 500;
+            font-size: 16px;
+            white-space: nowrap;
+            display: none; /* Hidden by default on mobile */
+        }
+
+        /* Chat icon (simple chat bubble) */
+        #chat-button svg {
+            width: 32px; /* Larger icon */
+            height: 32px;
+            fill: var(--white);
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+        #chat-button:hover svg {
+            transform: rotate(5deg); /* Subtle rotation on hover */
+        }
+
+        /* Chat popup container - FIXED position to viewport */
+        #chat-popup {
+            position: fixed; /* This makes it float independently */
+            bottom: 95px; /* Position above the button (65px button + 30px gap) */
+            right: 25px;
+            width: 380px;
+            max-height: 520px; /* Taller for more content */
+            background: var(--white);
+            border-radius: 18px; /* More rounded corners */
+            box-shadow: 0 15px 40px var(--shadow-strong); /* Deeper shadow */
+            display: none; /* Hidden by default */
+            flex-direction: column;
+            z-index: 9999; /* Just below the button to avoid accidental clicks on button */
+            overflow: hidden; /* Ensures contents respect border-radius */
+            transition: all 0.3s ease-in-out; /* Smooth open/close */
+            transform-origin: bottom right; /* For scaling effect */
+            opacity: 0;
+            transform: scale(0.8);
+        }
+        #chat-popup.show {
+            display: flex;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Header */
+        #chat-popup header {
+            background-color: var(--navy-blue);
+            color: var(--white);
+            padding: 18px 25px; /* More padding */
+            font-weight: 600;
+            font-size: 19px; /* Slightly larger font */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--dark-navy); /* Subtle line */
+        }
+
+        #chat-popup header .close-btn {
+            background: none;
+            border: none;
+            color: var(--white);
+            font-size: 28px; /* Larger close icon */
+            cursor: pointer;
+            line-height: 1;
+            padding: 0 5px;
+            transition: transform 0.2s ease, color 0.2s ease;
+            opacity: 0.8;
+        }
+        #chat-popup header .close-btn:hover {
+            transform: rotate(90deg);
+            color: var(--light-gray);
+            opacity: 1;
+        }
+
+        /* Chat messages area */
+        #chat-history {
+            flex-grow: 1;
+            padding: 20px; /* More padding */
+            overflow-y: auto;
+            background: var(--off-white); /* Off-white for history background */
+            border-bottom: 1px solid var(--light-gray);
+            /* Custom scrollbar for aesthetics */
+            scrollbar-width: thin;
+            scrollbar-color: var(--navy-blue) var(--off-white);
+        }
+        #chat-history::-webkit-scrollbar {
+            width: 8px;
+        }
+        #chat-history::-webkit-scrollbar-track {
+            background: var(--off-white);
+        }
+        #chat-history::-webkit-scrollbar-thumb {
+            background-color: var(--navy-blue);
+            border-radius: 10px;
+            border: 2px solid var(--off-white);
+        }
+
+        /* Chat message styles */
+        .message {
+            display: flex;
+            margin-bottom: 20px; /* More spacing */
+            align-items: flex-start;
+        }
+        .message.bot {
+            flex-direction: row;
+        }
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 48px; /* Larger avatar */
+            height: 48px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin: 0 12px;
+            flex-shrink: 0;
+            background-color: var(--medium-gray); /* Fallback */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 8px var(--shadow-light); /* Subtle shadow */
+            border: 2px solid var(--white); /* White border around avatar */
+        }
+        .avatar svg {
+            width: 100%; /* Make SVG fill avatar div */
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .bubble {
+            max-width: 78%; /* Wider bubbles */
+            padding: 15px 20px; /* More padding */
+            border-radius: 25px; /* Fully rounded */
+            font-size: 15px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            box-shadow: 0 2px 5px var(--shadow-light); /* Subtle bubble shadow */
+        }
+        .bot .bubble {
+            background-color: var(--navy-blue);
+            color: var(--white);
+            border-bottom-left-radius: 8px; /* Pointed corner */
+        }
+        .user .bubble {
+            background-color: var(--light-gray);
+            color: var(--text-color);
+            border-bottom-right-radius: 8px; /* Pointed corner */
+        }
+
+        /* Suggested questions container */
+        #suggested-questions {
+            padding: 15px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* More spacing */
+            background-color: var(--white);
+            border-top: 1px solid var(--light-gray);
+            justify-content: center; /* Center buttons */
+        }
+
+        /* Question buttons */
+        .question-btn {
+            background-color: var(--off-white);
+            border: 1px solid var(--navy-blue);
+            color: var(--navy-blue);
+            padding: 10px 18px;
+            border-radius: 30px; /* Very rounded */
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            box-shadow: 0 2px 5px var(--shadow-light);
+        }
+        .question-btn:hover {
+            background-color: var(--navy-blue);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px var(--shadow-medium);
+        }
+        .question-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Response buttons (link buttons) */
+        .response-buttons {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end; /* Align to right for user-like responses */
+        }
+        .bot + .response-buttons { /* If buttons are part of bot response */
+            justify-content: flex-start;
+        }
+
+        .response-buttons a {
+            background-color: var(--light-navy);
+            color: var(--white);
+            padding: 8px 14px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px var(--shadow-light);
+            white-space: nowrap;
+        }
+        .response-buttons a:hover {
+            background-color: var(--hover-blue);
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px var(--shadow-medium);
+        }
+
+        /* Chat input area */
+        #chat-input-area {
+            display: flex;
+            padding: 15px 20px;
+            background-color: var(--white);
+            border-top: 1px solid var(--light-gray);
+            gap: 10px;
+        }
+
+        #chat-input-area input[type="text"] {
+            flex-grow: 1;
+            padding: 12px 18px;
+            border: 1px solid var(--medium-gray);
+            border-radius: 28px; /* Very rounded */
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            background-color: var(--off-white);
+            color: var(--text-color);
+        }
+
+        #chat-input-area input[type="text"]::placeholder {
+            color: var(--light-text);
+        }
+
+        #chat-input-area input[type="text"]:focus {
+            border-color: var(--navy-blue);
+            box-shadow: 0 0 0 4px rgba(10, 17, 40, 0.15); /* Focus ring */
+        }
+
+        #chat-input-area button {
+            background: linear-gradient(45deg, var(--navy-blue) 0%, var(--light-navy) 100%); /* Gradient button */
+            color: var(--white);
+            border: none;
+            border-radius: 50%;
+            width: 48px; /* Larger send button */
+            height: 48px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px var(--shadow-medium);
+        }
+
+        #chat-input-area button:hover {
+            background: linear-gradient(45deg, var(--hover-blue) 0%, var(--navy-blue) 100%);
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 6px 12px var(--shadow-strong);
+        }
+        #chat-input-area button:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        #chat-input-area button svg {
+            fill: var(--white);
+            width: 22px; /* Larger icon */
+            height: 22px;
+            transform: translateX(1px); /* optical adjustment */
+        }
+
+        /* Hyper-Responsiveness with Media Queries */
+        @media (min-width: 768px) {
+            #chat-button .chat-text {
+                display: block; /* Show text on larger screens */
+            }
+        }
+
+        @media (max-width: 768px) {
+            #chat-popup {
+                width: 320px; /* Slightly smaller on tablets */
+                max-height: 460px; /* Smaller max-height */
+                bottom: 85px; /* Adjust gap */
+                right: 20px;
+            }
+
+            #chat-button {
+                width: 60px;
+                height: 60px;
+                right: 20px;
+                bottom: 20px;
+                padding: 0; /* Remove padding on mobile */
+                border-radius: 50%; /* Make it circular on mobile */
+            }
+            #chat-button svg {
+                width: 28px;
+                height: 28px;
+            }
+
+            #chat-popup header {
+                padding: 15px 20px;
+                font-size: 18px;
+            }
+            #chat-popup header .close-btn {
+                font-size: 26px;
+            }
+
+            .bubble {
+                padding: 12px 18px;
+                font-size: 14px;
+            }
+            .avatar {
+                width: 40px;
+                height: 40px;
+                margin: 0 10px;
+            }
+
+            #chat-history, #suggested-questions, #chat-input-area {
+                padding: 15px;
+            }
+            .question-btn, .response-buttons a {
+                font-size: 13px;
+                padding: 9px 15px;
+            }
+            #chat-input-area input[type="text"] {
+                font-size: 15px;
+                padding: 10px 15px;
+            }
+            #chat-input-area button {
+                width: 42px;
+                height: 42px;
+            }
+            #chat-input-area button svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #chat-popup {
+                width: calc(100% - 40px); /* Take almost full width */
+                max-height: 70vh; /* Max height based on viewport */
+                right: 20px;
+                bottom: 80px;
+                border-radius: 15px;
+            }
+
+            #chat-button {
+                width: 55px;
+                height: 55px;
+                right: 15px;
+                bottom: 15px;
+            }
+            #chat-button svg {
+                width: 26px;
+                height: 26px;
+            }
+
+            #chat-popup header {
+                padding: 12px 18px;
+                font-size: 17px;
+            }
+
+            .bubble {
+                padding: 10px 15px;
+                font-size: 13px;
+                max-width: 85%;
+            }
+            .avatar {
+                width: 35px;
+                height: 35px;
+                margin: 0 8px;
+            }
+            .message {
+                margin-bottom: 15px;
+            }
+
+            #chat-history, #suggested-questions, #chat-input-area {
+                padding: 12px;
+            }
+            .question-btn {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+            .response-buttons a {
+                padding: 7px 11px;
+                font-size: 12px;
+            }
+            #chat-input-area input[type="text"] {
+                font-size: 14px;
+                padding: 9px 12px;
+            }
+            #chat-input-area button {
+                width: 38px;
+                height: 38px;
+            }
+            #chat-input-area button svg {
+                width: 18px;
+                height: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Floating chat button -->
+<div id="chat-button" title="Chat with us" role="button" aria-expanded="false" aria-controls="chat-popup">
+  <!-- Simple chat bubble SVG icon -->
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 4h16v12H5.17L4 17.17V4z" />
+  </svg>
+  <span class="chat-text">Chat with us</span>
+</div>
+
+<!-- Chat popup -->
+<div id="chat-popup" role="dialog" aria-modal="true" aria-labelledby="chat-header">
+  <header id="chat-header">
+    A ONE Real Estate Chat
+    <button class="close-btn" aria-label="Close chat">×</button>
+  </header>
+  <div id="chat-history" aria-live="polite" aria-relevant="additions"></div>
+  <div id="suggested-questions" aria-label="Suggested questions"></div>
+  <div id="chat-input-area">
+    <input type="text" id="chat-input" placeholder="Type your message..." aria-label="Type your message">
+    <button id="send-button" aria-label="Send message">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<script>
+    // Female Avatar SVG (simplified, clean lines)
+    const femaleAvatarSVG = `
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+                <linearGradient id="skinGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#F5C6A0;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#E8B38A;stop-opacity:1" />
+                </linearGradient>
+                <linearGradient id="hairGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#4A2C2A;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#3C2220;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="48" fill="url(#skinGradient)"/>
+            <path d="M50 48c-10 0-18 8-18 18h36c0-10-8-18-18-18z" fill="#4A2C2A"/>
+            <path d="M50 20c-15 0-25 10-25 25c0 10 10 15 25 15s25-5 25-15c0-15-10-25-25-25z" fill="url(#hairGradient)"/>
+            <circle cx="38" cy="40" r="5" fill="#3B2E2E"/>
+            <circle cx="62" cy="40" r="5" fill="#3B2E2E"/>
+            <path d="M40 60 Q50 68 60 60" stroke="#3B2E2E" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </svg>`;
+
+    // Generic User Avatar SVG (more neutral, modern lines)
+    const userAvatarSVG = `
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+                <linearGradient id="userSkinGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#B0D0E7;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#9CC0D6;stop-opacity:1" />
+                </linearGradient>
+                <linearGradient id="userHairGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#607D8B;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#455A64;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <circle cx="50" cy="50" r="48" fill="url(#userSkinGradient)"/>
+            <path d="M50 55c-15 0-25 10-25 25h50c0-15-10-25-25-25z" fill="#455A64"/>
+            <circle cx="38" cy="45" r="5" fill="#3B2E2E"/>
+            <circle cx="62" cy="45" r="5" fill="#3B2E2E"/>
+            <path d="M40 65 Q50 60 60 65" stroke="#3B2E2E" stroke-width="3" fill="none" stroke-linecap="round"/>
+            <path d="M30 30 C35 25 65 25 70 30 L65 40 L35 40 Z" fill="url(#userHairGradient)"/>
+        </svg>`;
+
+    const faqData = [
+        {
+            question: "I'm looking to rent.",
+            keywords: ["rent", "rental", "renting", "lease", "tenant"],
+            answer: "Excellent 😃 I'd be happy to assist you with rentals. What specifically are you looking for?",
+            buttons: [
+                { label: "Browse Properties For Rent", url: "https://aonerealestate.com.au/properties-for-rent" },
+                { label: "Free Rental Appraisal", url: "https://aonerealestate.com.au/free-rental-appraisal" },
+                { label: "Property Management Services", url: "https://aonerealestate.com.au/property-management" }
+            ],
+        },
+        {
+            question: "I'm looking to sell.",
+            keywords: ["sell", "selling", "sale", "appraise", "valuation", "list property"],
+            answer: "Great! I can help you with the selling process. What's your primary goal?",
+            buttons: [
+                { label: "View Recent Sales", url: "https://aonerealestate.com.au/sold-properties/" },
+                { label: "Sell a Property", url: "https://aonerealestate.com.au/free-sales-appraisal" },
+                { label: "Find a Sales Agent", url: "https://aonerealestate.com.au/meet-our-team" }
+            ],
+        },
+        {
+            question: "I'm looking to buy.",
+            keywords: ["buy", "buying", "purchase", "invest", "find home"],
+            answer: "Wonderful! We have many properties available for purchase. Where are you interested in buying?",
+            buttons: [
+                { label: "Browse Properties", url: "https://aonerealestate.com.au/properties-for-sale" },
+                { label: "Contact Our Team", url: "https://aonerealestate.com.au/meet-our-team" }
+            ],
+        },
+        {
+            question: "I'd like a market appraisal.",
+            keywords: ["market appraisal", "appraisal", "value", "how much is my house worth", "property value"],
+            answer: "An appraisal is a great way to understand your property's worth. Are you looking to sell or rent?",
+            buttons: [
+                { label: "I'm interested in selling", url: "https://aonerealestate.com.au/free-sales-appraisal" },
+                { label: "I'm interested in renting", url: "https://aonerealestate.com.au/properties-for-rent" },
+                { label: "I'm just curious", url: "https://aonerealestate.com.au" }
+            ],
+        },
+        {
+            question: "Client Testimonials",
+            keywords: ["testimonials", "reviews", "feedback", "what do clients say", "client experience"],
+            answer: "Fantastic! Hearing from our clients is always a pleasure. You can see their experiences here:",
+            buttons: [
+                { label: "See Verified Reviews", url: "https://www.realestate.com.au/agency/a-one-real-estate-rla-309133-DXBUGF" },
+                { label: "See Google Reviews", url: "https://www.google.com/search?q=A+ONE+REAL+ESTATE+PTY+LTD+Reviews" }
+            ],
+        },
+         {
+            question: "Contact Information",
+            keywords: ["contact", "phone", "email", "address", "get in touch", "call us", "office"],
+            answer: "You can reach us through various channels. How would you prefer to get in touch?",
+            buttons: [
+                { label: "Call Us", url: "tel:+61-0882777567" }, /* Replace with actual phone number */
+                { label: "Email Us", url: "mailto:contact@aonerealestate.com.au" }, /* Replace with actual email */
+                { label: "Our Office Location", url: "https://www.google.com/maps/place/A+ONE+REAL+ESTATE+PTY+LTD/@-34.9932186,138.5418786,15z/data=!3m1!4b1!4m6!3m5!1s0x6ab0cf36844e75ad:0x6adb5d3efdb21900!8m2!3d-34.9932376!4d138.5603326!16s%2Fg%2F11jw0c5cm9?entry=ttu&g_ep=EgoyMDI1MDYwMy4wIKXMDSoASAFQAw%3D%3D" } /* Replace with actual map link */
+            ],
+        },
+        {
+            question: "About A ONE Real Estate",
+            keywords: ["about us", "history", "company", "who are you", "our team", "mission"],
+            answer: "A ONE Real Estate is dedicated to providing exceptional real estate services with a focus on integrity and client satisfaction. Learn more about our mission and values.",
+            buttons: [
+                { label: "Learn More About Us", url: "https://aonerealestate.com.au/about-us" } /* Replace with actual about us page */
+            ],
+        }
+    ];
+
+    const chatButton = document.getElementById("chat-button");
+    const chatPopup = document.getElementById("chat-popup");
+    const chatHistoryEl = document.getElementById("chat-history");
+    const suggestedQuestionsEl = document.getElementById("suggested-questions");
+    const chatInput = document.getElementById("chat-input");
+    const sendButton = document.getElementById("send-button");
+    const closeButton = document.querySelector(".close-btn");
+
+    // Toggle chat popup visibility
+    function toggleChat() {
+        const isVisible = chatPopup.classList.contains("show");
+        if (isVisible) {
+            chatPopup.classList.remove("show");
+            chatButton.setAttribute("aria-expanded", "false");
+        } else {
+            chatPopup.classList.add("show");
+            chatButton.setAttribute("aria-expanded", "true");
+            scrollToBottom();
+            chatInput.focus(); // Focus on input when opened
+            initChat(); // Re-initialize chat on open for fresh state
+        }
+    }
+
+    chatButton.addEventListener("click", toggleChat);
+    closeButton.addEventListener("click", toggleChat);
+
+    // Add message to chat history
+    function addMessage(from, text, buttons) {
+        const msgDiv = document.createElement("div");
+        msgDiv.classList.add("message", from);
+
+        const avatarDiv = document.createElement("div");
+        avatarDiv.classList.add("avatar");
+        avatarDiv.innerHTML = from === "bot" ? femaleAvatarSVG : userAvatarSVG;
+
+        const bubbleDiv = document.createElement("div");
+        bubbleDiv.classList.add("bubble");
+        bubbleDiv.textContent = text;
+
+        msgDiv.appendChild(avatarDiv);
+        msgDiv.appendChild(bubbleDiv);
+        chatHistoryEl.appendChild(msgDiv);
+
+        if (buttons && buttons.length) {
+            const btnContainer = document.createElement("div");
+            btnContainer.classList.add("response-buttons");
+
+            buttons.forEach(b => {
+                const a = document.createElement("a");
+                a.href = b.url;
+                a.target = "_blank";
+                a.rel = "noopener noreferrer"; // Security best practice
+                a.textContent = b.label;
+                btnContainer.appendChild(a);
+            });
+
+            chatHistoryEl.appendChild(btnContainer);
+        }
+
+        scrollToBottom();
+    }
+
+    // Scroll chat to bottom
+    function scrollToBottom() {
+        chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+    }
+
+    // Handle user clicking a suggested question
+    function handleUserQuestion(faqItem) {
+        addMessage("user", faqItem.question);
+        suggestedQuestionsEl.style.display = "none"; // Hide suggested questions after selection
+        chatInput.value = ""; // Clear input field
+
+        setTimeout(() => {
+            addMessage("bot", faqItem.answer, faqItem.buttons);
+        }, 700);
+    }
+
+    // Handle user input from text field
+    function handleUserInput() {
+        const userText = chatInput.value.trim();
+        if (userText === "") return;
+
+        addMessage("user", userText);
+        chatInput.value = ""; // Clear input field
+        suggestedQuestionsEl.style.display = "none"; // Hide suggested questions when user types
+
+        setTimeout(() => {
+            const lowerCaseUserText = userText.toLowerCase();
+            let foundMatch = false;
+
+            // Prioritize exact keyword matches over partial
+            for (const faq of faqData) {
+                if (faq.keywords.some(keyword => lowerCaseUserText === keyword)) {
+                    addMessage("bot", faq.answer, faq.buttons);
+                    foundMatch = true;
+                    break;
+                }
+            }
+
+            // If no exact match, check for partial matches
+            if (!foundMatch) {
+                for (const faq of faqData) {
+                    if (faq.keywords.some(keyword => lowerCaseUserText.includes(keyword))) {
+                        addMessage("bot", faq.answer, faq.buttons);
+                        foundMatch = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!foundMatch) {
+                addMessage("bot", "I'm sorry, I don't quite understand that. Could you please rephrase, or select from the options below?");
+                suggestedQuestionsEl.style.display = "flex"; // Show suggested questions again
+                renderSuggestedQuestions(); // Re-render for clarity
+            }
+        }, 800);
+    }
+
+    sendButton.addEventListener("click", handleUserInput);
+    chatInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+            handleUserInput();
+        }
+    });
+
+    // Render suggested question buttons
+    function renderSuggestedQuestions() {
+        suggestedQuestionsEl.innerHTML = "";
+        faqData.forEach(faq => {
+            const btn = document.createElement("button");
+            btn.classList.add("question-btn");
+            btn.textContent = faq.question;
+            btn.addEventListener("click", () => handleUserQuestion(faq));
+            suggestedQuestionsEl.appendChild(btn);
+        });
+    }
+
+    // Initialize chat with welcome message and suggested questions
+    function initChat() {
+        chatHistoryEl.innerHTML = ""; // Clear previous messages
+        suggestedQuestionsEl.style.display = "flex"; // Ensure suggested questions are visible
+        addMessage("bot", "Good evening! Welcome to A ONE Real Estate 😁 How can we help you today?");
+        renderSuggestedQuestions();
+    }
+</script>
+
+</body>
+</html>
